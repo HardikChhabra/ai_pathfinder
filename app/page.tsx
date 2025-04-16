@@ -1,19 +1,12 @@
 "use client";
 import { useState, useEffect } from "react";
 
-type CellType = "empty" | "start" | "end" | "obstacle" | "path";
-type ModeType = "start" | "end" | "obstacles" | "ready";
+import { CellType } from "./types/CellType";
+import { ModeType } from "./types/ModeType";
+import { Point } from "./types/Point";
 
-interface Point {
-  row: number;
-  col: number;
-}
-
-interface QueueItem {
-  row: number;
-  col: number;
-  path: Point[];
-}
+import findPath from "./utils/findPath";
+import resetGrid from "./utils/resetGrid";
 
 export default function PathfindingGrid() {
   const [grid, setGrid] = useState<CellType[][]>([]);
@@ -93,119 +86,6 @@ export default function PathfindingGrid() {
     }
   };
 
-  const findPath = (): void => {
-    if (!startPoint || !endPoint) {
-      setMessage("Please select both start and end points");
-      return;
-    }
-
-    // Clear previous path
-    const newGrid = [...grid];
-    for (let i = 0; i < 10; i++) {
-      for (let j = 0; j < 10; j++) {
-        if (newGrid[i][j] === "path") {
-          newGrid[i][j] = "empty";
-        }
-      }
-    }
-    setGrid(newGrid);
-
-    // Implement BFS to find path
-    const queue: QueueItem[] = [
-      {
-        row: startPoint.row,
-        col: startPoint.col,
-        path: [],
-      },
-    ];
-
-    const visited = new Set<string>();
-    visited.add(`${startPoint.row},${startPoint.col}`);
-
-    const directions: [number, number][] = [
-      [-1, 0], // up
-      [1, 0], // down
-      [0, -1], // left
-      [0, 1], // right
-      [-1, -1], //upper-left
-      [1, 1], //down-right
-      [-1, 1], //upper-right
-      [1, -1], //down-left
-    ];
-
-    while (queue.length > 0) {
-      const { row, col, path } = queue.shift()!;
-
-      // Check if reached end point
-      if (row === endPoint.row && col === endPoint.col) {
-        displayPath(path);
-        setMessage("Path found!");
-        return;
-      }
-
-      // Explore all four directions
-      for (const [dx, dy] of directions) {
-        const newRow = row + dx;
-        const newCol = col + dy;
-        const key = `${newRow},${newCol}`;
-
-        // Check if valid position
-        if (
-          newRow >= 0 &&
-          newRow < 10 &&
-          newCol >= 0 &&
-          newCol < 10 &&
-          !visited.has(key) &&
-          !(grid[newRow][newCol] === "obstacle")
-        ) {
-          visited.add(key);
-          queue.push({
-            row: newRow,
-            col: newCol,
-            path: [...path, { row: newRow, col: newCol }],
-          });
-        }
-      }
-    }
-
-    setMessage("No path found!");
-  };
-
-  const displayPath = (foundPath: Point[]): void => {
-    const newGrid = [...grid];
-
-    // Mark path cells
-    foundPath.forEach((point) => {
-      if (
-        !(
-          startPoint &&
-          point.row === startPoint.row &&
-          point.col === startPoint.col
-        ) &&
-        !(endPoint && point.row === endPoint.row && point.col === endPoint.col)
-      ) {
-        newGrid[point.row][point.col] = "path";
-      }
-    });
-
-    setPath(foundPath);
-    setGrid(newGrid);
-  };
-
-  const resetGrid = (): void => {
-    const newGrid: CellType[][] = [];
-    for (let i = 0; i < 10; i++) {
-      newGrid.push(Array(10).fill("empty"));
-    }
-    setGrid(newGrid);
-    setStartPoint(null);
-    setEndPoint(null);
-    setObstacles([]);
-    setPath([]);
-    setMode("start");
-    setMessage("Select a starting point");
-  };
-
   const getCellStyle = (cellType: CellType): string => {
     switch (cellType) {
       case "start":
@@ -244,13 +124,32 @@ export default function PathfindingGrid() {
       <div className="flex space-x-4">
         <button
           className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-          onClick={findPath}
+          onClick={() =>
+            findPath({
+              startPoint,
+              endPoint,
+              setMessage,
+              grid,
+              setGrid,
+              setPath,
+            })
+          }
         >
           Find Path
         </button>
         <button
           className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
-          onClick={resetGrid}
+          onClick={() =>
+            resetGrid({
+              setGrid,
+              setEndPoint,
+              setObstacles,
+              setStartPoint,
+              setMessage,
+              setMode,
+              setPath,
+            })
+          }
         >
           Reset Grid
         </button>
